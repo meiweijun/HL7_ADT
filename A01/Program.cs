@@ -11,6 +11,87 @@ namespace A01
     {
         static void Main()
         {
+            string str = "";
+            str = Generate();
+            Analyzing(str);
+        }
+
+        static void Analyzing(string hl7Message)
+        {
+            try
+            {
+                // 创建 PipeParser 实例
+                var parser = new PipeParser();
+
+                // 解析 HL7 消息字符串为 ADT_A01 消息对象
+                IMessage message = parser.Parse(hl7Message);
+
+                // 如果消息是 ADT_A01 类型，则转换并处理
+                if (message is ADT_A01 adtA01)
+                {
+                    // 处理 MSH 段
+                    ProcessMSH(adtA01.MSH);
+
+                    // 处理 EVN 段
+                    ProcessEVN(adtA01.EVN);
+
+                    // 处理 PID 段
+                    ProcessPID(adtA01.PID);
+
+                    // 处理 PV1 段
+                    ProcessPV1(adtA01.PV1);
+                }
+                else
+                {
+                    Console.WriteLine("The parsed message is not an ADT_A01 type.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error occurred while parsing the HL7 message: {ex.Message}");
+            }
+        }
+
+        static void ProcessMSH(MSH msh)
+        {
+            Console.WriteLine("Processing MSH segment:");
+            Console.WriteLine($"Sending Application: {msh.SendingApplication.NamespaceID.Value}");
+            Console.WriteLine($"Sending Facility: {msh.SendingFacility.NamespaceID.Value}");
+            Console.WriteLine($"Receiving Application: {msh.ReceivingApplication.NamespaceID.Value}");
+            Console.WriteLine($"Receiving Facility: {msh.ReceivingFacility.NamespaceID.Value}");
+            Console.WriteLine($"Message Type: {msh.MessageType.MessageCode.Value}^{msh.MessageType.TriggerEvent.Value}");
+            Console.WriteLine($"Message Control ID: {msh.MessageControlID.Value}");
+            Console.WriteLine($"Version ID: {msh.VersionID.VersionID.Value}");
+        }
+
+        static void ProcessEVN(EVN evn)
+        {
+            Console.WriteLine("Processing EVN segment:");
+            Console.WriteLine($"Event Type Code: {evn.EventTypeCode.Value}");
+            Console.WriteLine($"Recorded Date/Time: {evn.RecordedDateTime.Time.Value}");
+        }
+
+        static void ProcessPID(PID pid)
+        {
+            Console.WriteLine("Processing PID segment:");
+            Console.WriteLine($"Patient ID: {pid.GetPatientIdentifierList(0).IDNumber.Value}");
+            Console.WriteLine($"Patient Name: {pid.GetPatientName(0).FamilyName.Surname.Value}, {pid.GetPatientName(0).GivenName.Value}");
+            Console.WriteLine($"Date of Birth: {pid.DateTimeOfBirth.Time.Value}");
+            Console.WriteLine($"Sex: {pid.AdministrativeSex.Value}");
+            Console.WriteLine($"Race: {pid.GetRace(0).Identifier.Value}");
+            Console.WriteLine($"Address: {pid.GetPatientAddress(0).StreetAddress.StreetOrMailingAddress.Value}, {pid.GetPatientAddress(0).City.Value}, {pid.GetPatientAddress(0).StateOrProvince.Value} {pid.GetPatientAddress(0).ZipOrPostalCode.Value}");
+        }
+
+        static void ProcessPV1(PV1 pv1)
+        {
+            Console.WriteLine("Processing PV1 segment:");
+            Console.WriteLine($"Set ID Patient Visit: {pv1.SetIDPV1}.Value"); // 这里假设可以直接获取值
+            Console.WriteLine($"Patient Class: {pv1.PatientClass.Value}");
+            Console.WriteLine($"Assigned Patient Location: {pv1.AssignedPatientLocation.PointOfCare.Value}");
+            Console.WriteLine($"Attending Doctor: {pv1.GetAttendingDoctor(0).IDNumber.Value}");
+        }
+        static string Generate()
+        {
             try
             {
                 // 创建ADT_A01消息实例
@@ -31,14 +112,17 @@ namespace A01
                 // 使用管道编码器生成HL7消息
                 var parser = new PipeParser();
                 string hl7Message = parser.Encode(adtA01);
-
+                
                 Console.WriteLine("Generated HL7 ADT^A01 Message:");
                 Console.WriteLine(hl7Message.Replace("\r", "\n")); // 增强可读性
+
+                return hl7Message;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
+                return null;
             }
         }
 
